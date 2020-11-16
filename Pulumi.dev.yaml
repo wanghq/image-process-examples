@@ -1,0 +1,4 @@
+config:
+  alicloud:profile: hq-test
+  alicloud:region: cn-hangzhou
+  alicloud:account: 1585714933323637
