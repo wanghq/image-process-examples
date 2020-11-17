@@ -34,53 +34,12 @@ func main() {
 		if err != nil {
 			return err
 		}
-
 		_, err = log.NewStoreIndex(ctx, "index", &log.StoreIndexArgs{
-			FieldSearches: log.StoreIndexFieldSearchArray{
-				log.StoreIndexFieldSearchArgs{
-					Alias:           pulumi.String("functionName"),
-					CaseSensitive:   pulumi.BoolPtr(false),
-					EnableAnalytics: pulumi.BoolPtr(true),
-					IncludeChinese:  pulumi.BoolPtr(false),
-					JsonKeys:        nil,
-					Name:            pulumi.String("functionName"),
-					Token:           pulumi.StringPtr(`, '";=()[]{}?@&<>/:\n\t\r`),
-					Type:            pulumi.StringPtr("text"),
-				},
-				log.StoreIndexFieldSearchArgs{
-					Alias:           pulumi.String("serviceName"),
-					CaseSensitive:   pulumi.BoolPtr(false),
-					EnableAnalytics: pulumi.BoolPtr(true),
-					IncludeChinese:  pulumi.BoolPtr(false),
-					JsonKeys:        nil,
-					Name:            pulumi.String("serviceName"),
-					Token:           pulumi.StringPtr(`, '";=()[]{}?@&<>/:\n\t\r`),
-					Type:            pulumi.StringPtr("text"),
-				},
-				log.StoreIndexFieldSearchArgs{
-					Alias:           pulumi.String("qualifier"),
-					CaseSensitive:   pulumi.BoolPtr(false),
-					EnableAnalytics: pulumi.BoolPtr(true),
-					IncludeChinese:  pulumi.BoolPtr(false),
-					JsonKeys:        nil,
-					Name:            pulumi.String("qualifier"),
-					Token:           pulumi.StringPtr(`, '";=()[]{}?@&<>/:\n\t\r`),
-					Type:            pulumi.StringPtr("text"),
-				},
-				log.StoreIndexFieldSearchArgs{
-					Alias:           pulumi.String("versionId"),
-					CaseSensitive:   pulumi.BoolPtr(false),
-					EnableAnalytics: pulumi.BoolPtr(true),
-					IncludeChinese:  pulumi.BoolPtr(false),
-					JsonKeys:        nil,
-					Name:            pulumi.String("versionId"),
-					Type:            pulumi.StringPtr("double"),
-				},
-			},
+			FieldSearches: nil,
 			FullText:      log.StoreIndexFullTextArgs{
 				CaseSensitive:  pulumi.BoolPtr(false),
 				IncludeChinese: pulumi.BoolPtr(false),
-				Token:          pulumi.StringPtr(`, '";=()[]{}?@&<>/:\n\t\r`),
+				Token:          pulumi.StringPtr(", '\";=()[]{}?@&<>/:\n\t\r"),
 			},
 			Logstore:      store.Name,
 			Project:       logPrj.Name,
@@ -203,9 +162,7 @@ func main() {
 		}
 
 		f, err := fc.NewFunction(ctx, "compress-thumbnail", &fc.FunctionArgs{
-			CaPort:                nil,
-			CustomContainerConfig: nil,
-			Description:           pulumi.StringPtr("simple hello world"),
+			Description:           pulumi.StringPtr("Compress and generate thumbnail"),
 			EnvironmentVariables:  pulumi.Map{
 				"SOURCE_BUCKET": srcBucket.Bucket,
 				"TARGET_BUCKET": tgtBucket.Bucket,
@@ -215,13 +172,8 @@ func main() {
 			Handler:               pulumi.String("index.handler"),
 			InitializationTimeout: pulumi.IntPtr(10),
 			Initializer:           pulumi.StringPtr("index.initializer"),
-			InstanceConcurrency:   nil,
-			InstanceType:          nil,
 			MemorySize:            pulumi.IntPtr(128),
 			Name:                  pulumi.StringPtr("compress-thumbnail"),
-			NamePrefix:            nil,
-			OssBucket:             nil,
-			OssKey:                nil,
 			Runtime:               pulumi.String("python3"),
 			Service:               srv.Name,
 			Timeout:               pulumi.IntPtr(20),

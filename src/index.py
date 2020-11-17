@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import os
 import oss2
 import json
@@ -17,7 +18,6 @@ def initializer(context):
     targetBucket = get_oss_client(context, endpoint, os.environ.get('TARGET_BUCKET'))
 
 
-# 图片水印
 def watermarImage(image, watermarkStr):
     font = ImageFont.truetype("Brimborion.ttf", 40)
     drawImage = ImageDraw.Draw(image)
@@ -34,41 +34,32 @@ def watermarImage(image, watermarkStr):
     return image
 
 
-# 图片压缩
 def compressImage(image, width):
     height = image.size[1] / (image.size[0] / width)
     return image.resize((int(width), int(height)))
 
 
 def handler(event, context):
-
+    logger = logging.getLogger()
     event = json.loads(event.decode("utf-8"))
 
     for eveEvent in event["events"]:
-        # 获取object
-        print("获取object")
         image = eveEvent["oss"]["object"]["key"]
         localFileName = "/tmp/" + event["events"][0]["oss"]["object"]["eTag"]
         localReadyName = localFileName + "-result.png"
 
-        # 下载图片
-        print("下载图片")
-        print("image: ", image)
-        print("localFileName: ", localFileName)
+        logger.info("Downloading image %s to %s", image, localFileName)
         sourceBucket.get_object_to_file(image, localFileName)
 
-        # 图像压缩
-        print("图像压缩")
+        logger.info("Compressing image")
         imageObj = Image.open(localFileName)
         imageObj = compressImage(imageObj, width=500)
-        imageObj = watermarImage(imageObj, "Hello Serverless Devs")
+        imageObj = watermarImage(imageObj, "Hello")
         imageObj.save(localReadyName)
 
-        # 数据回传
-        print("数据回传")
+        logger.info("Saving image to %s", os.environ.get('TARGET_BUCKET') + "/" + image)
         with open(localReadyName, 'rb') as fileobj:
             targetBucket.put_object(image, fileobj.read())
-        print("Url: ", "http://" + os.environ.get('TARGET_BUCKET') + "/" + image)
 
     return 'oss trigger'
 
