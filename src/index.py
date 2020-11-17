@@ -54,7 +54,7 @@ def handler(event, context):
         logger.info("Compressing image")
         imageObj = Image.open(localFileName)
         imageObj = compressImage(imageObj, width=500)
-        imageObj = watermarImage(imageObj, "Hello")
+        imageObj = watermarImage(imageObj, "Powered by Function Compute")
         imageObj.save(localReadyName)
 
         logger.info("Saving image to %s", os.environ.get('TARGET_BUCKET') + "/" + image)
