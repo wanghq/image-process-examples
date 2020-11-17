@@ -1,0 +1,72 @@
+Global:
+  Access: release
+  Region: cn-hangzhou
+  AccessKeyId: '${Env(AccessKeyId)}'
+  AccessKeySecret: '${Env(AccessKeySecret)}'
+  OSSConfBucketSourceName: serverlessbook-image-source
+  OSSConfBucketTargetName: serverlessbook-image-target
+  OSSConfObjectSignUrlTimeOut: 1200
+SourceBucket:
+  Component: oss
+  Provider: alibaba
+  Access: hq-test
+  Properties:
+    Region: '${Global.Region}'
+    Bucket: '${Global.OSSConfBucketSourceName}'
+    CodeUri: ./test
+TargetBucket:
+  Component: oss
+  Provider: alibaba
+  Access: hq-test
+  Properties:
+    Region: '${Global.Region}'
+    Bucket: '${Global.OSSConfBucketTargetName}'
+    Acl: public-read
+ServerlessBookImageDemo:
+  Component: fc
+  Provider: alibaba
+  Access: hq-test
+  Extends:
+    deploy:
+      - Hook: s ServerlessBookImageDemo install docker
+        Src: ./src
+        Pre: true
+  Properties:
+    Region: '${Global.Region}'
+    Service:
+      Name: ServerlessBook
+      Description: Serverless图书案例
+      Log:
+        Project: aliyun-fc-cn-beijing-9bd4a65b-c9d1-529d-9ce0-c91adfb823ab
+        LogStore: function-log
+    Function:
+      Name: serverless_image
+      Description: 图片压缩、水印
+      CodeUri: ./src
+      Handler: index.handler
+      MemorySize: 128
+      Runtime: python3
+      Timeout: 5
+      Environment:
+        - Key: AccessKeyId
+          Value: '${Global.AccessKeyId}'
+        - Key: AccessKeySecret
+          Value: '${Global.AccessKeySecret}'
+        - Key: OSSConfBucketSourceName
+          Value: '${SourceBucket.Output.Bucket}'
+        - Key: OSSConfBucketTargetName
+          Value: '${TargetBucket.Output.Bucket}'
+        - Key: OSSConfEndPoint
+          Value: '${SourceBucket.Output.Endpoint.Publish}'
+        - Key: OSSConfObjectSignUrlTimeOut
+          Value: '1200'
+      Triggers:
+        - Name: OSSTrigger
+          Type: OSS
+          Parameters:
+            Bucket: '${SourceBucket.Output.Bucket}'
+            Events:
+              - 'oss:ObjectCreated:*'
+            Filter:
+              Prefix: ''
+              Suffix: ''
