@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+
+	"github.com/pulumi/pulumi-alicloud/sdk/v2/go/alicloud"
 	"github.com/pulumi/pulumi-alicloud/sdk/v2/go/alicloud/fc"
 	"github.com/pulumi/pulumi-alicloud/sdk/v2/go/alicloud/log"
 	"github.com/pulumi/pulumi-alicloud/sdk/v2/go/alicloud/oss"
@@ -16,13 +18,13 @@ func main() {
 		// Create log resources
 		logPrj, err := log.NewProject(ctx, "fc-logs", &log.ProjectArgs{
 			Description: pulumi.StringPtr("Function logs"),
-			Name: pulumi.StringPtr("fc-logs-30c26be"), // Cannot use auto-gen name due to log service behavior.
+			Name:        pulumi.StringPtr("fc-logs-30c26be"), // Cannot use auto-gen name due to log service behavior.
 		})
 		if err != nil {
 			return err
 		}
 		store, err := log.NewStore(ctx, "function-logs", &log.StoreArgs{
-			Name: pulumi.StringPtr("function-logs"),
+			Name:               pulumi.StringPtr("function-logs"),
 			AppendMeta:         nil,
 			AutoSplit:          nil,
 			EnableWebTracking:  nil,
@@ -36,13 +38,13 @@ func main() {
 		}
 		_, err = log.NewStoreIndex(ctx, "index", &log.StoreIndexArgs{
 			FieldSearches: nil,
-			FullText:      log.StoreIndexFullTextArgs{
+			FullText: log.StoreIndexFullTextArgs{
 				CaseSensitive:  pulumi.BoolPtr(false),
 				IncludeChinese: pulumi.BoolPtr(false),
 				Token:          pulumi.StringPtr(", '\";=()[]{}?@&<>/:\n\t\r"),
 			},
-			Logstore:      store.Name,
-			Project:       logPrj.Name,
+			Logstore: store.Name,
+			Project:  logPrj.Name,
 		})
 		if err != nil {
 			return err
@@ -142,33 +144,38 @@ func main() {
 			return err
 		}
 
-
 		srv, err := fc.NewService(ctx, "image-process-examples", &fc.ServiceArgs{
 			Description:    pulumi.StringPtr("A collection of fc examples"),
 			InternetAccess: pulumi.BoolPtr(true),
-			LogConfig:      fc.ServiceLogConfigArgs{
+			LogConfig: fc.ServiceLogConfigArgs{
 				Logstore: store.Name,
 				Project:  logPrj.Name,
 			},
-			Name:           pulumi.StringPtr("image-process-examples"),
-			NamePrefix:     nil,
-			NasConfig:      nil,
-			Publish:        nil,
-			Role:           srvRole.Arn,
-			VpcConfig:      nil,
+			Name:       pulumi.StringPtr("image-process-examples"),
+			NamePrefix: nil,
+			NasConfig:  nil,
+			Publish:    nil,
+			Role:       srvRole.Arn,
+			VpcConfig:  nil,
 		})
 		if err != nil {
 			return err
 		}
-
+		codeResult, err := alicloud.GetFileCrc64Checksum(ctx, &alicloud.GetFileCrc64ChecksumArgs{
+			Filename: pulumi.NewFileArchive("./code.zip").Path(),
+		})
+		if err != nil {
+			return err
+		}
 		f, err := fc.NewFunction(ctx, "compress-thumbnail", &fc.FunctionArgs{
-			Description:           pulumi.StringPtr("Compress and generate thumbnail"),
-			EnvironmentVariables:  pulumi.Map{
-				"SOURCE_BUCKET": srcBucket.Bucket,
-				"TARGET_BUCKET": tgtBucket.Bucket,
+			Description: pulumi.StringPtr("Compress and generate thumbnail"),
+			EnvironmentVariables: pulumi.Map{
+				"SOURCE_BUCKET":  srcBucket.Bucket,
+				"TARGET_BUCKET":  tgtBucket.Bucket,
 				"PYTHONUSERBASE": pulumi.String("/code/.fun/python"),
 			},
-			Filename:              pulumi.StringPtr(pulumi.NewFileArchive("./code.zip").Path()),
+			CodeChecksum:          pulumi.StringPtr(codeResult.Checksum),
+			Filename:              pulumi.StringPtr(codeResult.Filename),
 			Handler:               pulumi.String("index.handler"),
 			InitializationTimeout: pulumi.IntPtr(10),
 			Initializer:           pulumi.StringPtr("index.initializer"),
@@ -255,6 +262,7 @@ func main() {
 		ctx.Export("fc.trigger", t.Name)
 		ctx.Export("oss.srcBucket", srcBucket.Bucket)
 		ctx.Export("oss.tgtBucket", tgtBucket.Bucket)
+		ctx.Export("fc.codeChecksum", f.CodeChecksum)
 		return nil
 	})
 }
