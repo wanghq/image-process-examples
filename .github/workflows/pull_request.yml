@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 1
-      - uses: build
+      - name: build
         run: make build
       - uses: docker://pulumi/actions
         with:
